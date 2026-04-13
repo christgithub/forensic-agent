@@ -1,0 +1,49 @@
+import asyncio
+from pathlib import Path
+
+from EvidenceIngester.scanner import Scanner
+from IntegrityChecker.hasher import Hasher
+from ArtefactAnalysis.identifier import IdentifierWorker
+from ArtefactAnalysis.archiver import Archiver
+from ArtefactReporter.reporter import Reporter
+
+_ROOT = Path(__file__).parent
+
+# main itself is asynchronous and is the parent coroutine
+
+async def main():
+    # we create queues to create a producer/consumer model
+    file_listener_queue  = asyncio.Queue()
+    hash_queue           = asyncio.Queue()
+    analysis_queue       = asyncio.Queue()
+
+    scanner           = Scanner(str(_ROOT / "watched_directory"), file_listener_queue)
+    hasher            = Hasher(file_listener_queue, hash_queue)
+    identifier_worker = IdentifierWorker(
+        hash_queue,
+        analysis_queue,
+        archiver=Archiver(str(_ROOT / "archives")),
+        reporter=Reporter(
+            csv_path=str(_ROOT / "forensic_report.csv"),
+            db_path=str(_ROOT / "forensic_report.db"),
+        ),
+    )
+
+    scanner_task    = asyncio.create_task(scanner.start())
+    hasher_task     = asyncio.create_task(hasher.start())
+    identifier_task = asyncio.create_task(identifier_worker.start())
+
+    try:
+        await asyncio.gather(scanner_task, hasher_task, identifier_task)
+    except KeyboardInterrupt:
+        print("\nShutting down gracefully...")
+        for task in (scanner_task, hasher_task, identifier_task):
+            task.cancel()
+        await asyncio.gather(scanner_task, hasher_task, identifier_task, return_exceptions=True)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nExiting...")

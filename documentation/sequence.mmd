@@ -1,0 +1,41 @@
+---
+config:
+  theme: redux-color
+  look: neo
+---
+
+sequenceDiagram
+    actor User
+    participant ForensicAgent
+    participant Scanner
+    participant Hasher
+    participant Identifier
+    participant Analyzer
+    participant Archiver
+    participant Reporter
+    participant MySQL Storage
+    User ->> ForensicAgent: Start scan
+    ForensicAgent ->> Scanner: Find files
+    Scanner -->> ForensicAgent: Files
+
+    loop Each file
+        ForensicAgent ->> Hasher: Hash file
+        Hasher -->> ForensicAgent: SHA-256
+        ForensicAgent ->> Identifier: Identify type
+        Identifier -->> ForensicAgent: MIME/signature
+        alt Known file type
+        ForensicAgent ->> Analyzer: Analyze metadata/structure/anomalies
+        Analyzer -->> ForensicAgent: Findings
+        else Unknown file type
+        ForensicAgent ->> Archiver: Archive unknown file
+        Archiver -->> ForensicAgent: Archived
+        end
+        ForensicAgent ->> Reporter: Record result
+        Reporter ->> MySQL Storage: Store entry
+        MySQL Storage -->> Reporter: Stored
+    end
+
+    ForensicAgent ->> Reporter: Build final report
+    Reporter ->> MySQL Storage: Persist final report
+    MySQL Storage -->> Reporter: Persisted
+    Reporter -->> User: Forensic report

@@ -1,0 +1,7 @@
+services:
+  forensic-agent:
+    build: .
+    container_name: forensic-agent
+    volumes:
+      - ./watched_directory:/app/watched_directory
+    restart: unless-stopped

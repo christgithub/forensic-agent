@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# Windows artefacts E2E test image
+# ---------------------------------------------------------------------------
+# Default base: linux/amd64 Python slim — works on any Docker host (macOS,
+# Linux, Windows).  The test validates the agent against real Windows forensic
+# artefact formats (.exe / MZ-PE, .dll, .reg, .bat, .ps1, .evtx, .lnk).
+#
+# To run the SAME test inside a genuine Windows Server Core container
+# (requires a Windows Docker host or a Windows CI runner), replace the FROM
+# line below with:
+#   FROM python:3.11-windowsservercore-ltsc2022
+# and adjust WORKDIR / RUN mkdir accordingly.
+# ---------------------------------------------------------------------------
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Copy application files
+COPY . /app
+
+# Install system dependency required by python-magic
+RUN apt-get update && apt-get install -y --no-install-recommends libmagic1 && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir watchfiles python-magic
+
+# Create the watched directory used by the agent
+RUN mkdir -p watched_directory
+
+# Run the Windows artefacts end-to-end test
+CMD ["python", "E2E/test_e2e_windows.py"]
+

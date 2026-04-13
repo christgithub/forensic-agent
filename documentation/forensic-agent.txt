@@ -1,0 +1,29 @@
+WORKFLOW
+---------------
+
+File detected
+      ↓
+Compute SHA-256 and MD5 hashes
+      ↓
+Collect metadata
+      ↓
+Identify file type
+      ↓
+Analyze structure and anomalies
+      ↓
+Generate forensic report
+
+forensic_agent/
+│
+├── scanner.py        (evidence acquisition)
+├── hasher.py         (integrity verification)
+├── metadata.py       (metadata collection)
+├── identifier.py     (file identification)
+├── analyzer.py       (deep analysis)
+└── reporter.py       (report generation)
+
+
+Is the evidence intact?        → hashing
+What file is this really?      → identification
+What information does it hold? → analysis
+Is it suspicious?              → anomaly detection

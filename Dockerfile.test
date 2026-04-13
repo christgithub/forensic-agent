@@ -1,0 +1,15 @@
+FROM python:3.14.4-slim
+
+WORKDIR /app
+
+# Copy application files
+COPY . /app
+
+# Install system dependency required by python-magic
+RUN apt-get update && apt-get install -y --no-install-recommends libmagic1 && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir watchfiles python-magic
+
+# Run the end-to-end test
+CMD ["python", "E2E/test_e2e.py"]
