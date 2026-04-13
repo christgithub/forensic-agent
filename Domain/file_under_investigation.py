@@ -13,6 +13,7 @@ class FileUnderInvestigation:
     last_accessed_at: datetime
     sha256: str
     md5: str
+    status: str = "unknown"
 
     @classmethod
     def from_path(cls, file_path: Path, sha256: str, md5: str) -> 'FileUnderInvestigation':

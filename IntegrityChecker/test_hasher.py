@@ -190,7 +190,12 @@ class TestHasher:
 
     @pytest.mark.asyncio
     async def test_hasher_handles_invalid_file(self):
-        """Test that Hasher handles invalid files gracefully."""
+        """Test that Hasher handles invalid files gracefully.
+
+        When hashing fails the file is silently skipped (error is logged) and
+        nothing is pushed onto the output queue — callers should never receive
+        a None sentinel for a failed hash.
+        """
         input_queue = asyncio.Queue()
         output_queue = asyncio.Queue()
 
@@ -203,12 +208,14 @@ class TestHasher:
         # Wait for processing
         await asyncio.sleep(0.5)
 
-        # Should still put something in output queue (None or error)
-        assert not output_queue.empty()
-        result = await output_queue.get()
+        # Nothing should have been pushed — the failed file is dropped silently
+        assert output_queue.empty(), (
+            "Output queue should be empty when hashing fails; "
+            "failed files must not propagate None sentinels downstream"
+        )
 
-        # Result should be None for failed files
-        assert result is None
+        # The hasher must still be running (it must not have crashed)
+        assert not hasher_task.done(), "Hasher task must survive a hashing failure"
 
         # Cancel hasher task
         hasher_task.cancel()

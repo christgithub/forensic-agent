@@ -44,8 +44,8 @@ class Reporter:
 
         logger.info(
             "Report appended: %s | size=%d | sha256=%s | md5=%s | path=%s | "
-            "created=%s | modified=%s | accessed=%s",
+            "created=%s | modified=%s | accessed=%s | status=%s",
             file.name, file.size, file.sha256, file.md5, file.path,
             file.created_at.isoformat(), file.modified_at.isoformat(),
-            file.last_accessed_at.isoformat(),
+            file.last_accessed_at.isoformat(), file.status,
         )

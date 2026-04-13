@@ -65,10 +65,12 @@ class Hasher:
                         sha256=result['hashes']['sha256'],
                         md5=result['hashes']['md5']
                     )
+                    await self.output_queue.put(file_investigated)
                 else:
-                    logger.error("Failed to hash %s: %s", result['file_path'], result['error'])
-
-                await self.output_queue.put(file_investigated)
+                    logger.error(
+                        "Failed to hash '%s' — file will NOT appear in the report: %s",
+                        result['file_path'], result['error'],
+                    )
 
             finally:
                 self.input_queue.task_done()

@@ -18,15 +18,16 @@ CREATE TABLE IF NOT EXISTS forensic_report (
     last_accessed_at TEXT    NOT NULL,
     sha256           TEXT    NOT NULL,
     md5              TEXT    NOT NULL,
+    status           TEXT    NOT NULL DEFAULT 'unknown',
     recorded_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 """
 
 _INSERT_SQL = """
 INSERT INTO forensic_report
-    (name, size, path, created_at, modified_at, last_accessed_at, sha256, md5)
+    (name, size, path, created_at, modified_at, last_accessed_at, sha256, md5, status)
 VALUES
-    (:name, :size, :path, :created_at, :modified_at, :last_accessed_at, :sha256, :md5);
+    (:name, :size, :path, :created_at, :modified_at, :last_accessed_at, :sha256, :md5, :status);
 """
 
 _SELECT_ALL_SQL = "SELECT * FROM forensic_report ORDER BY recorded_at DESC;"
@@ -76,9 +77,10 @@ class MySQLiteOutboundAdapter:
                     "last_accessed_at": file.last_accessed_at.isoformat(),
                     "sha256":           file.sha256,
                     "md5":              file.md5,
+                    "status":           file.status,
                 },
             )
-        logger.info("Stored in DB: %s (sha256=%s…)", file.name, file.sha256[:12])
+        logger.info("Stored in DB: %s (sha256=%s… status=%s)", file.name, file.sha256[:12], file.status)
 
     def fetch_all(self) -> List[dict]:
         """Return every stored entry as a list of dicts (most recent first)."""

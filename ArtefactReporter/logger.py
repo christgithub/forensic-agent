@@ -20,6 +20,7 @@ _CSV_FIELDS = [
     "last_accessed_at",
     "sha256",
     "md5",
+    "status",
 ]
 
 
@@ -50,8 +51,25 @@ class CsvLoggingStrategy(LoggingStrategy):
     def __init__(self, csv_path: str = "forensic_report.csv") -> None:
         self.csv_path = Path(csv_path)
 
+    def _header_is_valid(self) -> bool:
+        """Return True if the CSV file already has the correct header row."""
+        try:
+            with self.csv_path.open(mode="r", newline="", encoding="utf-8") as fh:
+                existing = next(csv.reader(fh), [])
+            return existing == _CSV_FIELDS
+        except (OSError, StopIteration):
+            return False
+
     def log(self, file: FileUnderInvestigation) -> None:
-        write_header = not self.csv_path.exists() or self.csv_path.stat().st_size == 0
+        file_exists_and_nonempty = self.csv_path.exists() and self.csv_path.stat().st_size > 0
+
+        # If the file exists but has a stale header (e.g. schema changed),
+        # remove it so it is recreated with the correct header below.
+        if file_exists_and_nonempty and not self._header_is_valid():
+            self.csv_path.unlink()
+            file_exists_and_nonempty = False
+
+        write_header = not file_exists_and_nonempty
 
         with self.csv_path.open(mode="a", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=_CSV_FIELDS)
@@ -68,14 +86,15 @@ class CsvLoggingStrategy(LoggingStrategy):
                 "last_accessed_at": file.last_accessed_at.isoformat(),
                 "sha256":           file.sha256,
                 "md5":              file.md5,
+                "status":           file.status,
             })
 
         logger.info(
             "CSV logged: %s | size=%d | sha256=%s | md5=%s | path=%s | "
-            "created=%s | modified=%s | accessed=%s",
+            "created=%s | modified=%s | accessed=%s | status=%s",
             file.name, file.size, file.sha256, file.md5, file.path,
             file.created_at.isoformat(), file.modified_at.isoformat(),
-            file.last_accessed_at.isoformat(),
+            file.last_accessed_at.isoformat(), file.status,
         )
 
 
@@ -96,10 +115,10 @@ class MySQLiteLoggingStrategy(LoggingStrategy):
         self._adapter.store(file)
         logger.info(
             "SQLite inserted: %s | size=%d | sha256=%s | md5=%s | path=%s | "
-            "created=%s | modified=%s | accessed=%s",
+            "created=%s | modified=%s | accessed=%s | status=%s",
             file.name, file.size, file.sha256, file.md5, file.path,
             file.created_at.isoformat(), file.modified_at.isoformat(),
-            file.last_accessed_at.isoformat(),
+            file.last_accessed_at.isoformat(), file.status,
         )
 
 
@@ -138,4 +157,3 @@ class Logger:
     def log(self, file: FileUnderInvestigation) -> None:
         """Delegate logging to the active strategy."""
         self._strategy.log(file)
-

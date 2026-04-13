@@ -66,7 +66,7 @@ class IdentifierWorker:
             file_investigated: FileUnderInvestigation = await self.input_queue.get()
             try:
                 if file_investigated is None:
-                    await self.output_queue.put(None)
+                    # Stale None sentinel — skip without crashing
                     continue
 
                 result = await asyncio.to_thread(
@@ -86,6 +86,9 @@ class IdentifierWorker:
                     result['is_valid'],
                 )
 
+                status = "clean" if result["is_valid"] else "suspicious"
+                file_investigated.status = status
+
                 await asyncio.to_thread(self._reporter.report, file_investigated)
 
                 if not result["is_valid"]:
@@ -96,6 +99,22 @@ class IdentifierWorker:
                         "file":           file_investigated,
                         "identification": result,
                     })
+
+            except Exception as exc:
+                logger.exception(
+                    "Error processing '%s' — reporting as 'error': %s",
+                    getattr(file_investigated, 'name', '?'), exc,
+                )
+                # Ensure the file still appears in the report even when processing fails
+                if file_investigated is not None:
+                    file_investigated.status = "error"
+                    try:
+                        await asyncio.to_thread(self._reporter.report, file_investigated)
+                    except Exception:
+                        logger.exception(
+                            "Also failed to report error entry for '%s'",
+                            file_investigated.name,
+                        )
 
             finally:
                 self.input_queue.task_done()
