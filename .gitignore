@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Generated runtime artefacts
+forensic_report.csv
+forensic_report.db
+archives/
+service.log
+*.pid
+.service.pid
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
